@@ -3,10 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import os
-# 1. Load the dataset
+
 file_path = r"C:\Users\divansh verma\Downloads\circular_motion.h5"
 with h5py.File(file_path, 'r') as f:
-    # Access the 'events' dataset directly as a raw array
+   
     data = f['events'][:]
 if not os.path.exists(file_path):
     print(f"ERROR: The file was not found at {file_path}. Please check the folder name.")
@@ -14,19 +14,19 @@ else:
     with h5py.File(file_path, 'r') as f:
         data = f['events'][:]
         print(f"SUCCESS: Loaded {len(data)} events.")
-# Column mapping: [timestamp, x, y, polarity]
+
 ts = data[:, 0]
 x  = data[:, 1]
 y  = data[:, 2]
 p  = data[:, 3]
 
-# Normalize time to seconds for easier interpretation
+
 t_sec = (ts - ts.min()) / 1e6
 
 # --- PLOT 1: 3D Spatio-Temporal Helix ---
 fig = plt.figure(figsize=(10, 7))
 ax = fig.add_subplot(111, projection='3d')
-# Subsample 10,000 events to ensure smooth rendering of the 486k points
+
 idx = np.linspace(0, len(data)-1, 10000).astype(int)
 scatter = ax.scatter(x[idx], y[idx], t_sec[idx], c=t_sec[idx], cmap='plasma', s=0.5, alpha=0.6)
 ax.set_xlabel('X (pixels)')
@@ -37,7 +37,7 @@ plt.colorbar(scatter, label='Time (s)')
 plt.show()
 
 # --- PLOT 2: Event Rate (Temporal Dynamics) ---
-bin_width = 0.1 # 100ms bins
+bin_width = 0.1 
 bins = np.arange(0, t_sec.max() + bin_width, bin_width)
 counts, _ = np.histogram(t_sec, bins=bins)
 plt.figure(figsize=(10, 4))
@@ -50,7 +50,7 @@ plt.show()
 
 # --- PLOT 3: Inter-Event Time (IET) Distribution ---
 iet = np.diff(ts)
-iet = iet[iet > 0] # Filter out simultaneous events if any
+iet = iet[iet > 0] 
 plt.figure(figsize=(10, 4))
 plt.hist(np.log10(iet), bins=100, color='green', alpha=0.7)
 plt.xlabel('log10(Inter-Event Time [μs])')
@@ -69,17 +69,16 @@ plt.title('Inference: Event Polarity Distribution')
 plt.show()
 
 # 2. Vector Field Extraction
-# We calculate the 'displacement' between consecutive events in time
-# This reveals the instantaneous 'Flow' of the simulation
+
 dt = np.diff(ts)
 dx = np.diff(x)
 dy = np.diff(y)
 
-# Filter for meaningful motion (ignore noise/simultaneous events)
+
 valid = dt > 0
 v_x = dx[valid] / dt[valid]
 v_y = dy[valid] / dt[valid]
-t_v = ts[1:][valid] / 1e6 # Time in seconds
+t_v = ts[1:][valid] / 1e6 
 
 # 3. Visualization: The Velocity Phase-Space
 plt.figure(figsize=(10, 8), facecolor='black')
@@ -100,14 +99,14 @@ plt.show()
 print("\n--- Physical Reality Traceback Results ---")
 
 # 1. Coordinate System Extraction: Finding the Center of Rotation
-# The center of the orbital circle can be found by the geometric mean of event bounds
+
 cx, cy = (x.min() + x.max()) / 2, (y.min() + y.max()) / 2
 print(f"Inferred Orbital Center: ({cx:.2f}, {cy:.2f}) pixels")
 
 # 2. Orbital Kinematics: Calculating Radius and Angular Velocity
-# We calculate the distance of every event from the inferred center
+
 radii = np.sqrt((x - cx)**2 + (y - cy)**2)
-# The orbital radius is the average distance of events from the center
+
 orbital_radius = np.mean(radii)
 
 # Calculate Angular Velocity (omega) by unwrapping the polar angle over time
@@ -121,7 +120,7 @@ print(f"Inferred Orbital Radius: {orbital_radius:.2f} pixels")
 print(f"Inferred Angular Velocity: {ang_vel:.4f} rad/s ({rpm:.2f} RPM)")
 
 # 3. Structural Reconstruction: Identifying the Object Shape
-# We take a narrow temporal 'slice' (20ms) to see the square without motion blur
+
 slice_duration = 0.02 
 t_mid = t_sec.max() / 2
 mask = (t_sec >= t_mid) & (t_sec <= t_mid + slice_duration)
@@ -137,7 +136,7 @@ plt.legend()
 plt.show()
 
 # 4. Dimension Estimation: Measuring the Square
-# The 'width' of the ring in the 2D plot corresponds to the side length/diagonal of the square
+
 object_size_estimate = np.percentile(radii, 95) - np.percentile(radii, 5)
 print(f"Estimated Physical Object Size: ~{object_size_estimate:.2f} pixels")
 
@@ -145,8 +144,7 @@ print(f"Estimated Physical Object Size: ~{object_size_estimate:.2f} pixels")
 print("\n--- Executing Velocity-Compensated Handshake ---")
 
 # 1. Define the 'Handshake' Transformation
-# We reverse the rotation: theta_inertial = theta_raw - (omega * time)
-# This 'de-warps' the events into the static Inertial Frame
+
 time_relative = (ts - ts.min()) / 1e6  # seconds
 theta_raw = np.arctan2(y - cy, x - cx)
 theta_inertial = theta_raw - (ang_vel * time_relative)
@@ -156,10 +154,9 @@ x_comp = cx + radii * np.cos(theta_inertial)
 y_comp = cy + radii * np.sin(theta_inertial)
 
 # 2. Loading the GAIA Physical Map (Reference Reality)
-# For the square simulation, the 'GAIA Map' is the static geometry at t=0
-# In a star tracker, this would be your 'gaia_catalog_f50mm.csv' coordinates
+
 print("Loading GAIA Physical Map reference...")
-gaia_ref_x = [cx - 20, cx + 20, cx + 20, cx - 20, cx - 20] # Corners of the physical square
+gaia_ref_x = [cx - 20, cx + 20, cx + 20, cx - 20, cx - 20] 
 gaia_ref_y = [cy - 20, cy - 20, cy + 20, cy + 20, cy - 20]
 
 # 3. Visualization: The Handshake Plot
@@ -168,7 +165,7 @@ ax = plt.gca()
 ax.set_facecolor('black')
 
 # Plot De-warped Events (The 'Compensated' stream)
-# We sample 1/500 to see the density without crashing the renderer
+
 plt.scatter(x_comp[::500], y_comp[::500], c=ts[::500], cmap='winter', 
             s=1, alpha=0.3, label='Velocity-Compensated Events')
 
@@ -183,5 +180,6 @@ plt.legend(facecolor='black', labelcolor='white')
 plt.axis('equal')
 plt.grid(color='#333333', linestyle=':')
 plt.show()
+
 
 print("[SUCCESS] Handshake complete. Events aligned to Inertial Frame.")
